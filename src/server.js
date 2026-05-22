@@ -85,7 +85,7 @@ app.get('/logout', (req, res) => {
 app.get('/app', requireAuth, async (req, res) => {
   try {
     const user = await db.getUserById(req.session.userId);
-    const recent = await db.getRecentMessages(20);
+    const recent = await db.getRecentMessages(20, req.sessionID);
     const stats = { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT };
     res.send(dashboardPage(user, stats, recent));
   } catch (err) {
@@ -122,7 +122,7 @@ app.post('/api/send', requireAuth, async (req, res) => {
     return res.status(429).json({ error: `Daily SMS limit (${DAILY_LIMIT}) reached. Try again tomorrow.` });
   }
 
-  const messageId = await db.createMessage(req.session.userId, phone, body);
+  const messageId = await db.createMessage(req.session.userId, phone, body, req.sessionID);
 
   try {
     const result = await sendSms(phone, body);
@@ -137,7 +137,7 @@ app.post('/api/send', requireAuth, async (req, res) => {
 
 app.get('/api/messages', requireAuth, async (req, res) => {
   try {
-    const messages = await db.getRecentMessages(100);
+    const messages = await db.getRecentMessages(100, req.sessionID);
     res.json({
       messages,
       stats: { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT }

@@ -30,8 +30,8 @@ async function createUser(email, password_hash, name) {
   return { id: ref.id, ...user };
 }
 
-async function createMessage(user_id, phone_number, body) {
-  const msg = { user_id, phone_number, body, status: 'pending', created_at: new Date().toISOString() };
+async function createMessage(user_id, phone_number, body, sessionId = null) {
+  const msg = { user_id, phone_number, body, sessionId, status: 'pending', created_at: new Date().toISOString() };
   if (!db) {
     const id = 'mock-msg-' + Date.now();
     mockMessages.push({ id, ...msg });
@@ -54,10 +54,20 @@ async function updateMessageStatus(id, status, gateway_id = null, error = null) 
   await db.collection('messages').doc(String(id)).update(updates);
 }
 
-async function getRecentMessages(limit = 20) {
-  if (!db) return [...mockMessages].reverse().slice(0, limit);
-  const snap = await db.collection('messages').orderBy('created_at', 'desc').limit(limit).get();
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+async function getRecentMessages(limit = 20, sessionId = null) {
+  if (!db) {
+    let msgs = [...mockMessages];
+    if (sessionId) msgs = msgs.filter(m => m.sessionId === sessionId);
+    return msgs.reverse().slice(0, limit);
+  }
+  let query = db.collection('messages');
+  if (sessionId) {
+    query = query.where('sessionId', '==', sessionId);
+  }
+  const snap = await query.get();
+  let docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  docs.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  return docs.slice(0, limit);
 }
 
 async function getUsedToday(todayStartIso) {
