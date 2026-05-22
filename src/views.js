@@ -13,7 +13,7 @@ function layout(title, body) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${escapeHtml(title)} · MAT SMS Pro</title>
+  <title>${escapeHtml(title)} · Sms Gateway</title>
   
   <!-- Modern Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,94 +115,81 @@ function layout(title, body) {
 
 function loginPage(error) {
   return layout('Sign In', `
-<div class="flex-grow flex items-center justify-center px-4 py-16 relative overflow-hidden">
-  
-  <!-- Glowing Background Orbs -->
-  <div class="absolute w-96 h-96 -top-12 -left-12 bg-violet-600/10 rounded-full blur-3xl"></div>
-  <div class="absolute w-96 h-96 -bottom-12 -right-12 bg-indigo-600/10 rounded-full blur-3xl"></div>
+<!-- ═══ GridScan WebGL Background Canvas ═══ -->
+<canvas id="gridscan-bg" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block;"></canvas>
 
-  <div class="w-full max-w-md glass-panel p-8 rounded-2xl shadow-2xl relative z-10 transition-all duration-300">
+<div class="flex-grow flex items-center justify-center px-4 py-16" style="position:relative;z-index:10;">
+
+  <div class="w-full max-w-3xl glass-panel p-6 md:p-8 rounded-[2rem] shadow-[0_0_60px_rgba(0,229,255,0.15)] border border-cyan-500/20 transition-all duration-300 flex flex-col md:flex-row gap-8 md:gap-12 font-outfit backdrop-blur-xl">
     
-    <!-- Logo & Header -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center p-3 bg-violet-600/10 rounded-xl border border-violet-500/20 mb-3">
-        <i data-lucide="message-square" class="w-8 h-8 text-violet-400"></i>
+    <!-- Left: Logo & Header -->
+    <div class="flex-1 flex flex-col justify-center items-center md:items-start text-center md:text-left">
+      <div class="inline-flex items-center justify-center p-4 bg-cyan-500/10 rounded-2xl border border-cyan-400/30 mb-6 shadow-[0_0_30px_rgba(0,229,255,0.2)]">
+        <i data-lucide="cpu" class="w-10 h-10 text-cyan-300"></i>
       </div>
-      <h1 class="text-3xl font-extrabold font-outfit tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">MAT SMS Pro</h1>
-      <p class="text-slate-400 text-sm mt-1">Sleek SIM-based marketing & messaging engine</p>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white drop-shadow-[0_0_15px_rgba(0,229,255,0.5)] mb-3">Sms Gateway</h1>
+      <p class="text-cyan-100/70 text-lg font-light max-w-sm">The next-generation SIM-based marketing &amp; messaging gateway.</p>
     </div>
 
+    <!-- Right: Auth Form -->
+    <div class="flex-1 w-full max-w-md mx-auto relative">
+      
+      <!-- Error container -->
+      <div id="authError" class="hidden mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm flex items-center gap-3 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>
+        <span id="errorMessage"></span>
+      </div>
 
+      ${error ? '<div class="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm flex items-center gap-3 shadow-[0_0_15px_rgba(239,68,68,0.2)]"><i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i><span>' + escapeHtml(error) + '</span></div>' : ''}
 
-    <!-- Error container -->
-    <div id="authError" class="hidden mb-6 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center gap-3">
-      <i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>
-      <span id="errorMessage"></span>
-    </div>
+      <!-- Interactive Tabs -->
+      <div class="flex border-b border-cyan-900/40 mb-8">
+        <button id="tabLogin" class="flex-1 pb-4 text-sm font-bold border-b-2 border-cyan-400 text-white tracking-wider uppercase transition-colors">Sign In</button>
+        <button id="tabRegister" class="flex-1 pb-4 text-sm font-bold border-b-2 border-transparent text-cyan-100/40 hover:text-cyan-100/80 tracking-wider uppercase transition-colors">Register</button>
+      </div>
 
-    ${error ? `
-    <div class="mb-6 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center gap-3">
-      <i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>
-      <span>${escapeHtml(error)}</span>
-    </div>
-    ` : ''}
-
-    <!-- Interactive Tabs -->
-    <div class="flex border-b border-slate-800 mb-6">
-      <button id="tabLogin" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-violet-500 text-white">Sign In</button>
-      <button id="tabRegister" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">Register</button>
-    </div>
-
-    <!-- Main Auth Form -->
-    <form id="authForm" class="space-y-4">
-      <div id="nameInputWrapper" class="hidden space-y-1.5">
-        <label class="text-xs font-semibold text-slate-400 tracking-wide uppercase">Full Name</label>
-        <div class="relative">
-          <i data-lucide="user" class="absolute left-3 top-3.5 w-5 h-5 text-slate-500"></i>
-          <input id="nameInput" name="name" type="text" placeholder="Alex Mercer" class="w-full glass-input rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500">
+      <!-- Main Auth Form -->
+      <form id="authForm" class="space-y-5">
+        <div id="nameInputWrapper" class="hidden space-y-2">
+          <label class="text-xs font-bold text-cyan-200/60 tracking-widest uppercase">Full Name</label>
+          <div class="relative">
+            <i data-lucide="user" class="absolute left-4 top-4 w-5 h-5 text-cyan-500/60"></i>
+            <input id="nameInput" name="name" type="text" placeholder="Alex Mercer" class="w-full glass-input rounded-xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-cyan-100/30 focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 transition-all">
+          </div>
         </div>
-      </div>
 
-      <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-400 tracking-wide uppercase">Email Address</label>
-        <div class="relative">
-          <i data-lucide="mail" class="absolute left-3 top-3.5 w-5 h-5 text-slate-500"></i>
-          <input id="emailInput" name="email" type="email" required placeholder="alex@company.com" class="w-full glass-input rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500">
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-cyan-200/60 tracking-widest uppercase">Email Address</label>
+          <div class="relative">
+            <i data-lucide="fingerprint" class="absolute left-4 top-4 w-5 h-5 text-cyan-500/60"></i>
+            <input id="emailInput" name="email" type="email" required placeholder="alex@company.com" class="w-full glass-input rounded-xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-cyan-100/30 focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 transition-all">
+          </div>
         </div>
-      </div>
 
-      <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-400 tracking-wide uppercase">Password</label>
-        <div class="relative">
-          <i data-lucide="lock" class="absolute left-3 top-3.5 w-5 h-5 text-slate-500"></i>
-          <input id="passwordInput" name="password" type="password" required minlength="6" placeholder="••••••••" class="w-full glass-input rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500">
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-cyan-200/60 tracking-widest uppercase">Password</label>
+          <div class="relative">
+            <i data-lucide="lock-keyhole" class="absolute left-4 top-4 w-5 h-5 text-cyan-500/60"></i>
+            <input id="passwordInput" name="password" type="password" required minlength="6" placeholder="••••••••" class="w-full glass-input rounded-xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-cyan-100/30 focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 transition-all">
+          </div>
         </div>
-      </div>
 
-      <!-- Action Button -->
-      <button id="submitBtn" class="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg hover:from-violet-500 hover:to-indigo-500 active:scale-95 transition-all flex items-center justify-center gap-2">
-        <span id="submitBtnText">Sign In</span>
-        <i data-lucide="arrow-right" class="w-4 h-4"></i>
-      </button>
-
-      <!-- Google Sign In Option -->
-      <div id="googleDivider" class="relative my-6 flex items-center justify-center">
-        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
-        <span class="relative px-3 bg-slate-950/20 backdrop-blur-md text-xs text-slate-500 uppercase tracking-wider font-semibold">Or continue with</span>
-      </div>
-
-      <button id="googleBtn" type="button" class="w-full py-3 rounded-xl font-semibold border border-slate-800 hover:bg-slate-900 active:scale-95 transition-all text-sm flex items-center justify-center gap-3">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        <span>Sign in with Google</span>
-      </button>
-    </form>
+        <!-- Action Button -->
+        <button id="submitBtn" class="w-full mt-8 py-4 rounded-xl font-bold bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-900 shadow-[0_0_20px_rgba(0,229,255,0.3)] hover:shadow-[0_0_30px_rgba(0,229,255,0.5)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 uppercase tracking-widest">
+          <span id="submitBtnText">Sign In</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
   </div>
 </div>
+
+<!-- GridScan WebGL Background (Bundled) -->
+<style>
+  #gridscan-bg { position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;display:block;pointer-events:none; }
+  .glass-panel { position:relative;z-index:10; }
+</style>
+<script src="/gridscan.bundle.js"></script>
 
 <script>
   let isLoginMode = true;
@@ -210,8 +197,6 @@ function loginPage(error) {
   
   if (!isFirebaseActive) {
     document.getElementById('bypassWarning')?.classList.remove('hidden');
-    document.getElementById('googleDivider').classList.add('hidden');
-    document.getElementById('googleBtn').classList.add('hidden');
   } else {
     // Initialize Firebase client
     firebase.initializeApp(window.firebaseConfig);
@@ -228,14 +213,14 @@ function loginPage(error) {
     isLoginMode = loginMode;
     errorContainer.classList.add('hidden');
     if (loginMode) {
-      tabLogin.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-violet-500 text-white";
-      tabRegister.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200";
+      tabLogin.className = "flex-1 pb-4 text-sm font-bold border-b-2 border-cyan-400 text-white tracking-wider uppercase transition-colors";
+      tabRegister.className = "flex-1 pb-4 text-sm font-bold border-b-2 border-transparent text-cyan-100/40 hover:text-cyan-100/80 tracking-wider uppercase transition-colors";
       nameInputWrapper.classList.add('hidden');
       document.getElementById('nameInput').removeAttribute('required');
       submitBtnText.textContent = "Sign In";
     } else {
-      tabLogin.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200";
-      tabRegister.className = "flex-1 pb-3 text-sm font-semibold border-b-2 border-violet-500 text-white";
+      tabLogin.className = "flex-1 pb-4 text-sm font-bold border-b-2 border-transparent text-cyan-100/40 hover:text-cyan-100/80 tracking-wider uppercase transition-colors";
+      tabRegister.className = "flex-1 pb-4 text-sm font-bold border-b-2 border-cyan-400 text-white tracking-wider uppercase transition-colors";
       nameInputWrapper.classList.remove('hidden');
       document.getElementById('nameInput').setAttribute('required', 'true');
       submitBtnText.textContent = "Register";
@@ -246,120 +231,66 @@ function loginPage(error) {
   tabLogin.addEventListener('click', () => setMode(true));
   tabRegister.addEventListener('click', () => setMode(false));
 
-  async function handleLocalSubmit(email, password, name) {
-    const endpoint = isLoginMode ? '/login' : '/register';
-    
-    // In bypass mode, just post a fake token directly to trigger backend local sync
-    try {
-      const response = await fetch('/api/session-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          idToken: 'dev-token-' + email,
-          name: name || ''
-        })
-      });
-      let data;
-      const rawText = await response.text();
-      try {
-        data = JSON.parse(rawText);
-      } catch (parseErr) {
-        throw new Error('Server connection error: Received unexpected response from backend.');
-      }
-      if (!response.ok) throw new Error(data?.error || 'Authentication failed');
-      window.location.href = '/app';
-    } catch(err) {
-      errorContainer.classList.remove('hidden');
-      errorMessage.textContent = err.message;
-    }
-  }
-
-  document.getElementById('authForm').addEventListener('submit', async (e) => {
+  const authForm = document.getElementById('authForm');
+  authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    errorContainer.classList.add('hidden');
+    
     const email = document.getElementById('emailInput').value;
     const password = document.getElementById('passwordInput').value;
     const name = document.getElementById('nameInput').value;
-    
-    submitBtnText.textContent = isLoginMode ? 'Signing in…' : 'Registering…';
-    errorContainer.classList.add('hidden');
 
-    if (!isFirebaseActive) {
-      await handleLocalSubmit(email, password, name);
-      submitBtnText.textContent = isLoginMode ? 'Sign In' : 'Register';
-      return;
-    }
+    const originalBtnContent = document.getElementById('submitBtn').innerHTML;
+    document.getElementById('submitBtn').innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Processing...';
+    lucide.createIcons();
+    document.getElementById('submitBtn').disabled = true;
 
     try {
-      let userCredential;
-      if (isLoginMode) {
-        userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+      let idToken = '';
+      
+      if (!isFirebaseActive) {
+        // Dev bypass logic
+        const fakePayload = btoa(JSON.stringify({ email: email, name: name || 'Dev User' }));
+        idToken = 'dev-bypass-header.' + fakePayload + '.signature';
       } else {
-        userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-        if (name && userCredential.user) {
-          await userCredential.user.updateProfile({ displayName: name });
+        if (isLoginMode) {
+          const userCred = await firebase.auth().signInWithEmailAndPassword(email, password);
+          idToken = await userCred.user.getIdToken();
+        } else {
+          const userCred = await firebase.auth().createUserWithEmailAndPassword(email, password);
+          if (name) {
+            await userCred.user.updateProfile({ displayName: name });
+          }
+          idToken = await userCred.user.getIdToken();
         }
       }
-      
-      const idToken = await userCredential.user.getIdToken();
-      
-      const sessionRes = await fetch('/api/session-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, name: name || userCredential.user.displayName || '' })
-      });
-      
-      let sessionData;
-      const rawText = await sessionRes.text();
-      try {
-        sessionData = JSON.parse(rawText);
-      } catch (parseErr) {
-        console.error('Server returned non-JSON:', rawText);
-        throw new Error('Server connection error: Received unexpected response from backend.');
-      }
-      
-      if (!sessionRes.ok) throw new Error(sessionData?.error || 'Failed to establish local session');
-      
-      window.location.href = '/app';
-    } catch (err) {
-      errorContainer.classList.remove('hidden');
-      errorMessage.textContent = err.message;
-      submitBtnText.textContent = isLoginMode ? 'Sign In' : 'Register';
-    }
-  });
 
-  document.getElementById('googleBtn').addEventListener('click', async () => {
-    if (!isFirebaseActive) return;
-    errorContainer.classList.add('hidden');
-    
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      const userCredential = await firebase.auth().signInWithPopup(provider);
-      const idToken = await userCredential.user.getIdToken();
-      
-      const sessionRes = await fetch('/api/session-login', {
+      // Send token to our server to create session
+      const res = await fetch('/api/session-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, name: userCredential.user.displayName || '' })
+        body: JSON.stringify({ idToken, name })
       });
       
-      const sessionData = await sessionRes.json();
-      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to establish local session');
-      
-      window.location.href = '/app';
+      const data = await res.json();
+      if (data.ok) {
+        window.location.href = '/app';
+      } else {
+        throw new Error(data.error || 'Server rejected session');
+      }
+
     } catch (err) {
+      console.error(err);
+      errorMessage.textContent = err.message || 'Authentication failed';
       errorContainer.classList.remove('hidden');
-      errorMessage.textContent = err.message;
+    } finally {
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('submitBtn').innerHTML = originalBtnContent;
     }
   });
 </script>
-  `);
+`);
 }
-
-function registerPage(error) {
-  // Gracefully fallback register to standard LoginPage since we combined them
-  return loginPage(error);
-}
-
 function dashboardPage(user, stats, recent) {
   const rows = recent.map(m => `
     <tr class="border-b border-slate-800/40 hover:bg-slate-900/35 transition-colors">
@@ -672,11 +603,10 @@ function dashboardPage(user, stats, recent) {
     e.preventDefault();
     const prompt = document.getElementById('aiPrompt').value.trim();
     const statusEl = document.getElementById('aiStatus');
-    const form = document.getElementById('aiPromptForm');
     const skeleton = document.getElementById('aiSkeletonLoader');
     const section = document.getElementById('aiTemplatesSection');
     
-    statusEl.innerHTML = '<span class="text-violet-400 font-semibold animate-pulse">Consulting Gemini Expert Copywriter…</span>';
+    statusEl.innerHTML = '<span class="text-violet-400 font-semibold animate-pulse">Consulting Gemini Expert Copywriter\u2026</span>';
     skeleton.classList.remove('hidden');
     section.classList.add('hidden');
     
@@ -725,7 +655,7 @@ function dashboardPage(user, stats, recent) {
     const phone = document.getElementById('phone').value.trim();
     const body = messageBody.value.trim();
     
-    statusEl.innerHTML = '<i data-lucide="loader" class="w-4 h-4 text-slate-400 animate-spin"></i><span class="text-slate-400">Queueing on phone Gateway…</span>';
+    statusEl.innerHTML = '<i data-lucide="loader" class="w-4 h-4 text-slate-400 animate-spin"></i><span class="text-slate-400">Queueing on phone Gateway\u2026</span>';
     lucide.createIcons();
     
     try {
@@ -769,4 +699,4 @@ function escapeHtml(s) {
   }[c]));
 }
 
-module.exports = { loginPage, registerPage, dashboardPage };
+module.exports = { loginPage, dashboardPage };

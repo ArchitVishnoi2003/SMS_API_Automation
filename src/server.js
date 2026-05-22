@@ -15,6 +15,7 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '../public')));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
   resave: false,
@@ -161,7 +162,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`MAT SMS running on http://localhost:${PORT}`);
+  console.log(`Sms Gateway running on http://localhost:${PORT}`);
   console.log(`Daily limit: ${DAILY_LIMIT} · Gateway: ${process.env.SMS_GATEWAY_URL || 'https://api.sms-gate.app/3rdparty/v1'}`);
   if (!process.env.SMS_GATEWAY_USERNAME) {
     console.warn('⚠  SMS_GATEWAY_USERNAME / SMS_GATEWAY_PASSWORD not set — sends will fail until you configure .env');
