@@ -259,8 +259,14 @@ function loginPage(error) {
           name: name || ''
         })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Authentication failed');
+      let data;
+      const rawText = await response.text();
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        throw new Error('Server connection error: Received unexpected response from backend.');
+      }
+      if (!response.ok) throw new Error(data?.error || 'Authentication failed');
       window.location.href = '/app';
     } catch(err) {
       errorContainer.classList.remove('hidden');
@@ -302,8 +308,16 @@ function loginPage(error) {
         body: JSON.stringify({ idToken, name: name || userCredential.user.displayName || '' })
       });
       
-      const sessionData = await sessionRes.json();
-      if (!sessionRes.ok) throw new Error(sessionData.error || 'Failed to establish local session');
+      let sessionData;
+      const rawText = await sessionRes.text();
+      try {
+        sessionData = JSON.parse(rawText);
+      } catch (parseErr) {
+        console.error('Server returned non-JSON:', rawText);
+        throw new Error(`Server connection error: Received unexpected response from backend.`);
+      }
+      
+      if (!sessionRes.ok) throw new Error(sessionData?.error || 'Failed to establish local session');
       
       window.location.href = '/app';
     } catch (err) {
