@@ -2,10 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const db = require('./db');
-const { register, login, requireAuth } = require('./auth');
+const { requireAuth } = require('./auth');
 const { sendSms } = require('./gateway');
 const { remainingToday, usedToday, canSend, DAILY_LIMIT } = require('./quota');
-const { loginPage, registerPage, dashboardPage } = require('./views');
+const { loginPage, dashboardPage } = require('./views');
+const path = require('path');
+const { verifyIdToken } = require('./firebase');
+const { generateMessageTemplates } = require('./gemini');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -29,31 +32,50 @@ app.get('/login', (req, res) => {
   res.send(loginPage());
 });
 
-app.post('/login', async (req, res) => {
-  try {
-    const user = await login(req.body.email, req.body.password);
-    req.session.userId = user.id;
-    res.redirect('/app');
-  } catch (err) {
-    res.status(401).send(loginPage(err.message));
-  }
+app.post('/login', (req, res) => {
+  res.redirect('/login');
 });
 
 app.get('/register', (req, res) => {
-  if (req.session.userId) return res.redirect('/app');
-  res.send(registerPage());
+  res.redirect('/login');
 });
 
-app.post('/register', async (req, res) => {
+app.post('/register', (req, res) => {
+  res.redirect('/login');
+});
+
+app.post('/api/session-login', async (req, res) => {
+  const idToken = req.body.idToken;
+  const name = req.body.name || '';
+
+  if (!idToken) {
+    return res.status(400).json({ error: 'idToken is required' });
+  }
+
   try {
-    if (!req.body.password || req.body.password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
+    const decodedToken = await verifyIdToken(idToken);
+    const email = decodedToken.email;
+    const displayName = name || decodedToken.name || '';
+
+    if (!email) {
+      return res.status(400).json({ error: 'Invalid token: email address missing' });
     }
-    const user = await register(req.body.email, req.body.password, req.body.name);
+
+    let user = db.prepare('SELECT id, email, name FROM users WHERE email = ?').get(email);
+    if (!user) {
+      const result = db.prepare(
+        'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)'
+      ).run(email, 'firebase-managed', displayName || null);
+      user = { id: result.lastInsertRowid, email, name: displayName };
+    }
+
     req.session.userId = user.id;
-    res.redirect('/app');
+    req.session.email = user.email;
+
+    res.json({ ok: true, userId: user.id });
   } catch (err) {
-    res.status(400).send(registerPage(err.message));
+    console.error('Session login verification failed:', err.message);
+    res.status(401).json({ error: `Authentication failed: ${err.message}` });
   }
 });
 
@@ -70,6 +92,22 @@ app.get('/app', requireAuth, (req, res) => {
 });
 
 // ---------- JSON API ----------
+app.post('/api/generate-templates', requireAuth, async (req, res) => {
+  const prompt = (req.body.prompt || '').trim();
+  if (!prompt) {
+    return res.status(400).json({ error: 'prompt is required' });
+  }
+
+  try {
+    const templates = await generateMessageTemplates(prompt);
+    res.json({ ok: true, templates });
+  } catch (err) {
+    console.error('Gemini template generation failed:', err.message);
+    res.status(500).json({ error: `Generation failed: ${err.message}` });
+  }
+});
+
+
 app.post('/api/send', requireAuth, async (req, res) => {
   const phone = (req.body.phone || '').trim();
   const body = (req.body.body || '').trim();
