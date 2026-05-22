@@ -314,7 +314,7 @@ function loginPage(error) {
         sessionData = JSON.parse(rawText);
       } catch (parseErr) {
         console.error('Server returned non-JSON:', rawText);
-        throw new Error(`Server connection error: Received unexpected response from backend.`);
+        throw new Error('Server connection error: Received unexpected response from backend.');
       }
       
       if (!sessionRes.ok) throw new Error(sessionData?.error || 'Failed to establish local session');
