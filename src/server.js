@@ -61,12 +61,9 @@ app.post('/api/session-login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid token: email address missing' });
     }
 
-    let user = db.prepare('SELECT id, email, name FROM users WHERE email = ?').get(email);
+    let user = await db.getUserByEmail(email);
     if (!user) {
-      const result = db.prepare(
-        'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)'
-      ).run(email, 'firebase-managed', displayName || null);
-      user = { id: result.lastInsertRowid, email, name: displayName };
+      user = await db.createUser(email, 'firebase-managed', displayName || null);
     }
 
     req.session.userId = user.id;
@@ -84,10 +81,10 @@ app.get('/logout', (req, res) => {
 });
 
 // ---------- authenticated dashboard ----------
-app.get('/app', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, email, name FROM users WHERE id = ?').get(req.session.userId);
-  const recent = db.prepare(`SELECT * FROM messages ORDER BY id DESC LIMIT 20`).all();
-  const stats = { used: usedToday(), remaining: remainingToday(), limit: DAILY_LIMIT };
+app.get('/app', requireAuth, async (req, res) => {
+  const user = await db.getUserById(req.session.userId);
+  const recent = await db.getRecentMessages(20);
+  const stats = { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT };
   res.send(dashboardPage(user, stats, recent));
 });
 
@@ -115,38 +112,33 @@ app.post('/api/send', requireAuth, async (req, res) => {
   if (!phone || !body) {
     return res.status(400).json({ error: 'phone and body are required' });
   }
-  if (!canSend(1)) {
+  if (!(await canSend(1))) {
     return res.status(429).json({ error: `Daily SMS limit (${DAILY_LIMIT}) reached. Try again tomorrow.` });
   }
 
-  const insert = db.prepare(`
-    INSERT INTO messages (user_id, phone_number, body, status) VALUES (?, ?, ?, 'pending')
-  `).run(req.session.userId, phone, body);
-  const messageId = insert.lastInsertRowid;
+  const messageId = await db.createMessage(req.session.userId, phone, body);
 
   try {
     const result = await sendSms(phone, body);
-    db.prepare(`
-      UPDATE messages SET status = 'sent', gateway_id = ?, sent_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).run(result.id || null, messageId);
-    res.json({ ok: true, messageId, gatewayId: result.id, remaining: remainingToday() });
+    await db.updateMessageStatus(messageId, 'sent', result.id || null);
+    res.json({ ok: true, messageId, gatewayId: result.id, remaining: await remainingToday() });
   } catch (err) {
     const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
-    db.prepare(`UPDATE messages SET status = 'failed', error = ? WHERE id = ?`).run(errMsg, messageId);
+    await db.updateMessageStatus(messageId, 'failed', null, errMsg);
     res.status(502).json({ error: `Gateway error: ${errMsg}`, messageId });
   }
 });
 
-app.get('/api/messages', requireAuth, (req, res) => {
-  const messages = db.prepare(`SELECT * FROM messages ORDER BY id DESC LIMIT 100`).all();
+app.get('/api/messages', requireAuth, async (req, res) => {
+  const messages = await db.getRecentMessages(100);
   res.json({
     messages,
-    stats: { used: usedToday(), remaining: remainingToday(), limit: DAILY_LIMIT }
+    stats: { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT }
   });
 });
 
-app.get('/api/quota', requireAuth, (req, res) => {
-  res.json({ used: usedToday(), remaining: remainingToday(), limit: DAILY_LIMIT });
+app.get('/api/quota', requireAuth, async (req, res) => {
+  res.json({ used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT });
 });
 
 app.get('/api/health', (req, res) => {

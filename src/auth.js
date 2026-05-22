@@ -5,20 +5,18 @@ async function register(email, password, name) {
   email = (email || '').trim().toLowerCase();
   if (!email) throw new Error('Email is required');
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = await db.getUserByEmail(email);
   if (existing) throw new Error('Email already registered');
 
   const hash = await bcrypt.hash(password, 10);
-  const result = db.prepare(
-    'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)'
-  ).run(email, hash, (name || '').trim() || null);
+  const user = await db.createUser(email, hash, (name || '').trim() || null);
 
-  return { id: result.lastInsertRowid, email, name };
+  return { id: user.id, email: user.email, name: user.name };
 }
 
 async function login(email, password) {
   email = (email || '').trim().toLowerCase();
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  const user = await db.getUserByEmail(email);
   if (!user) throw new Error('Invalid email or password');
 
   const ok = await bcrypt.compare(password || '', user.password_hash);

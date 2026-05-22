@@ -8,21 +8,18 @@ function todayStartIso() {
   return d.toISOString();
 }
 
-function usedToday() {
-  const row = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM messages
-    WHERE created_at >= ? AND status != 'failed'
-  `).get(todayStartIso());
-  return row.count;
+async function usedToday() {
+  return await db.getUsedToday(todayStartIso());
 }
 
-function remainingToday() {
-  return Math.max(0, DAILY_LIMIT - usedToday());
+async function remainingToday() {
+  const used = await usedToday();
+  return Math.max(0, DAILY_LIMIT - used);
 }
 
-function canSend(count = 1) {
-  return remainingToday() >= count;
+async function canSend(count = 1) {
+  const remaining = await remainingToday();
+  return remaining >= count;
 }
 
 module.exports = { DAILY_LIMIT, usedToday, remainingToday, canSend };
