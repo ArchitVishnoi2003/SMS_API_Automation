@@ -66,9 +66,14 @@ async function getUsedToday(todayStartIso) {
   }
   const snap = await db.collection('messages')
     .where('created_at', '>=', todayStartIso)
-    .where('status', '!=', 'failed')
     .get();
-  return snap.size;
+  
+  // Filter status in memory to avoid needing a Firestore composite index
+  let usedCount = 0;
+  snap.forEach(doc => {
+    if (doc.data().status !== 'failed') usedCount++;
+  });
+  return usedCount;
 }
 
 module.exports = {

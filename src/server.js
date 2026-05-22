@@ -82,10 +82,15 @@ app.get('/logout', (req, res) => {
 
 // ---------- authenticated dashboard ----------
 app.get('/app', requireAuth, async (req, res) => {
-  const user = await db.getUserById(req.session.userId);
-  const recent = await db.getRecentMessages(20);
-  const stats = { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT };
-  res.send(dashboardPage(user, stats, recent));
+  try {
+    const user = await db.getUserById(req.session.userId);
+    const recent = await db.getRecentMessages(20);
+    const stats = { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT };
+    res.send(dashboardPage(user, stats, recent));
+  } catch (err) {
+    console.error('Dashboard load failed:', err);
+    res.status(500).send(`<h1>Server Error</h1><p>${err.message}</p>`);
+  }
 });
 
 // ---------- JSON API ----------
@@ -130,15 +135,25 @@ app.post('/api/send', requireAuth, async (req, res) => {
 });
 
 app.get('/api/messages', requireAuth, async (req, res) => {
-  const messages = await db.getRecentMessages(100);
-  res.json({
-    messages,
-    stats: { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT }
-  });
+  try {
+    const messages = await db.getRecentMessages(100);
+    res.json({
+      messages,
+      stats: { used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT }
+    });
+  } catch (err) {
+    console.error('Failed to get messages:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.get('/api/quota', requireAuth, async (req, res) => {
-  res.json({ used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT });
+  try {
+    res.json({ used: await usedToday(), remaining: await remainingToday(), limit: DAILY_LIMIT });
+  } catch (err) {
+    console.error('Failed to get quota:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.get('/api/health', (req, res) => {
