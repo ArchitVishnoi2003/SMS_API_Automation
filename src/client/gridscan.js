@@ -226,46 +226,7 @@ async function initGridScan() {
   const SM = 0.3;
   let useFaceTracking = false;
 
-  document.addEventListener('mousemove', e => {
-    if (useFaceTracking) return; // Overridden by face tracker
-    lookTarget.set(
-      (e.clientX / window.innerWidth) * 2 - 1,
-      -(((e.clientY / window.innerHeight) * 2 - 1))
-    );
-  });
-  
-  // Mobile Touch Support
-  document.addEventListener('touchmove', e => {
-    if (useFaceTracking || !e.touches.length) return;
-    lookTarget.set(
-      (e.touches[0].clientX / window.innerWidth) * 2 - 1,
-      -(((e.touches[0].clientY / window.innerHeight) * 2 - 1))
-    );
-  }, { passive: true });
-
-  // Mobile Gyroscope Support
-  window.addEventListener('deviceorientation', e => {
-    if (useFaceTracking || !e.gamma || !e.beta) return;
-    // gamma ranges roughly [-90, 90] for left-to-right tilt
-    // beta ranges roughly [-180, 180] for front-to-back tilt
-    let x = e.gamma / 45.0; // scale down
-    let y = (e.beta - 45) / 45.0; // assume natural hold angle is 45 deg
-    lookTarget.set(
-      THREE.MathUtils.clamp(x, -1, 1),
-      -THREE.MathUtils.clamp(y, -1, 1)
-    );
-  });
-
-  document.addEventListener('mouseleave', () => {
-    if (useFaceTracking) return;
-    lookTarget.set(0, 0);
-    tiltTarget = 0; yawTarget = 0;
-  });
-  document.addEventListener('touchend', () => {
-    if (useFaceTracking) return;
-    lookTarget.set(0, 0);
-    tiltTarget = 0; yawTarget = 0;
-  });
+  // Interactive parallax tracking disabled as requested
 
   window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -273,53 +234,7 @@ async function initGridScan() {
     uniforms.iResolution.value.set(window.innerWidth, window.innerHeight, renderer.getPixelRatio());
   });
 
-  // ── Face-API.js Tracking ──────────────────────────────────────────────────────
-  async function initFaceTracking() {
-    try {
-      // Load models from CDN
-      const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-      
-      const video = document.createElement('video');
-      video.style.display = 'none';
-      video.autoplay = true;
-      video.muted = true;
-      document.body.appendChild(video);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-      
-      video.addEventListener('play', () => {
-        useFaceTracking = true;
-        const scanFaces = async () => {
-          if (video.paused || video.ended) return;
-          const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions());
-          if (detection) {
-            // Map face position to lookTarget
-            const cx = detection.box.x + detection.box.width / 2;
-            const cy = detection.box.y + detection.box.height / 2;
-            const vw = video.videoWidth;
-            const vh = video.videoHeight;
-            // Reverse X because webcam is mirrored
-            lookTarget.set(
-              -((cx / vw) * 2 - 1) * 1.5,
-              -((cy / vh) * 2 - 1) * 1.5
-            );
-          } else {
-            // Recenter smoothly if no face found
-            lookTarget.set(0, 0);
-          }
-          requestAnimationFrame(scanFaces);
-        };
-        scanFaces();
-      });
-    } catch(err) {
-      console.warn('Face tracking failed or webcam denied, falling back to mouse:', err);
-    }
-  }
-  
-  // Start Face Tracking
-  initFaceTracking();
+  // Face-API.js Tracking disabled as requested
 
   // ── Render Loop ─────────────────────────────────────────────────────────────
   let last = performance.now();
@@ -330,8 +245,11 @@ async function initGridScan() {
     tiltCurrent = smoothDampFloat(tiltCurrent, tiltTarget, tiltVel, SM, dt);
     yawCurrent  = smoothDampFloat(yawCurrent,  yawTarget,  yawVel,  SM, dt);
 
+    const isMobile = window.innerWidth < 768;
+    const baseTilt = isMobile ? Math.PI / 2 : 0; // Vertically taller grid on mobile
+
     uniforms.uSkew.value.set(lookCurrent.x * 0.15, -lookCurrent.y * 1.4 * 0.15);
-    uniforms.uTilt.value = tiltCurrent * 0.25;
+    uniforms.uTilt.value = baseTilt + (tiltCurrent * 0.25);
     uniforms.uYaw.value  = THREE.MathUtils.clamp(yawCurrent * 0.2, -0.6, 0.6);
     uniforms.iTime.value = now / 1000;
 

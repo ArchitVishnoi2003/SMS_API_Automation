@@ -118,13 +118,13 @@ function loginPage(error) {
 <!-- ═══ GridScan WebGL Background Canvas ═══ -->
 <canvas id="gridscan-bg" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block;"></canvas>
 
-<div class="flex-grow flex items-center justify-center px-4 py-16" style="position:relative;z-index:10;">
+<div class="flex-grow flex items-center justify-center px-4 py-8 md:py-16" style="position:relative;z-index:10;">
 
-  <div class="w-full max-w-3xl glass-panel p-6 md:p-8 rounded-[2rem] shadow-[0_0_60px_rgba(0,229,255,0.15)] border border-cyan-500/20 transition-all duration-300 flex flex-col md:flex-row gap-8 md:gap-12 font-outfit backdrop-blur-xl">
+  <div class="w-[360px] md:w-[700px] max-w-full glass-panel p-5 md:p-8 rounded-[2rem] shadow-[0_0_60px_rgba(0,229,255,0.15)] border border-cyan-500/20 transition-all duration-300 flex flex-col md:flex-row gap-5 md:gap-12 font-outfit backdrop-blur-xl">
     
     <!-- Left: Logo & Header -->
     <div class="flex-1 flex flex-col justify-center items-center md:items-start text-center md:text-left">
-      <div class="inline-flex items-center justify-center p-4 bg-cyan-500/10 rounded-2xl border border-cyan-400/30 mb-6 shadow-[0_0_30px_rgba(0,229,255,0.2)]">
+      <div class="inline-flex items-center justify-center p-3 md:p-4 bg-cyan-500/10 rounded-2xl border border-cyan-400/30 mb-4 md:mb-6 shadow-[0_0_30px_rgba(0,229,255,0.2)]">
         <i data-lucide="cpu" class="w-10 h-10 text-cyan-300"></i>
       </div>
       <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white drop-shadow-[0_0_15px_rgba(0,229,255,0.5)] mb-3">Sms Gateway</h1>
@@ -143,7 +143,7 @@ function loginPage(error) {
       ${error ? '<div class="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm flex items-center gap-3 shadow-[0_0_15px_rgba(239,68,68,0.2)]"><i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i><span>' + escapeHtml(error) + '</span></div>' : ''}
 
       <!-- Interactive Tabs -->
-      <div class="flex border-b border-cyan-900/40 mb-8">
+      <div class="flex border-b border-cyan-900/40 mb-6 md:mb-8">
         <button id="tabLogin" class="flex-1 pb-4 text-sm font-bold border-b-2 border-cyan-400 text-white tracking-wider uppercase transition-colors">Sign In</button>
         <button id="tabRegister" class="flex-1 pb-4 text-sm font-bold border-b-2 border-transparent text-cyan-100/40 hover:text-cyan-100/80 tracking-wider uppercase transition-colors">Register</button>
       </div>
